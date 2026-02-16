@@ -15,8 +15,8 @@ import json
 import logging
 
 import pandas as pd
-from mcp.server.fastmcp import FastMCP
 
+from mcp.server.fastmcp import FastMCP
 from src.analysis.feature_engineering import extract_features
 from src.parsers import get_parser
 from src.rag.search import create_text_report, retrieve_context
@@ -146,9 +146,8 @@ def analyze_dive_profile(dive_number: str) -> str:
 
     summary = create_text_report(row.to_dict())
     if issues:
-        return (
-            f"Dive {dive_number} Analysis:\n{summary}\n\nIssues:\n"
-            + "\n".join(f"- {i}" for i in issues)
+        return f"Dive {dive_number} Analysis:\n{summary}\n\nIssues:\n" + "\n".join(
+            f"- {i}" for i in issues
         )
     return (
         f"Dive {dive_number} Analysis:\n{summary}\n\n"

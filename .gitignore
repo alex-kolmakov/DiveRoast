@@ -142,7 +142,7 @@ node_modules/
 frontend/dist/
 
 # Claude
-.CLAUDE.md
+CLAUDE.md
 
 # Local articles / decision logs
 articles/
