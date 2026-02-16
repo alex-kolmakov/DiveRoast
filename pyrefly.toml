@@ -1,0 +1,9 @@
+python_version = "3.11"
+python_interpreter = ".venv/bin/python"
+search_path = ["."]
+project-excludes = [
+    "src/rag/rest_api/**",
+    "src/mcp/**",
+    ".venv/**",
+    "frontend/**",
+]

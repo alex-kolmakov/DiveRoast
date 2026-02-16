@@ -1,9 +1,11 @@
-import pandas as pd
-import numpy as np
 import xml.etree.ElementTree as ET
-from divelog.transformers.feature_engineering import calculate_ascend_speed
-from divelog.transformers.parse_divelog import extract_all_dive_profiles_refined
-from divelog.transformers.feature_engineering import feature_extract
+
+import pandas as pd
+
+from src.analysis.feature_engineering import calculate_ascend_speed, extract_features
+from src.parsers.subsurface import extract_all_dive_profiles_refined
+
+FIXTURE_PATH = "tests/fixtures/anonymized_subsurface_export.ssrf"
 
 
 def test_calculate_ascend_speed():
@@ -42,14 +44,14 @@ def test_calculate_ascend_speed():
     pd.testing.assert_frame_equal(result, expected_output)
 
 
-def test_feature_extract():
+def test_extract_features():
     # Load the XML file
-    with open("anonymized_subsurface_export.ssrf", "r") as file:
+    with open(FIXTURE_PATH) as file:
         tree = ET.parse(file)
         root = tree.getroot()
 
-    data = {"parse_divelog": [extract_all_dive_profiles_refined(root)]}
-    features = feature_extract(data)
+    data = extract_all_dive_profiles_refined(root)
+    features = extract_features(data)
 
     assert not features.empty, "The features dataframe is empty"
     expected_columns = {

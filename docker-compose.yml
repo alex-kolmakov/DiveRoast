@@ -1,34 +1,36 @@
-version: '3'
-
-
-networks:
-  shared_network:
-
-
 services:
-  magic:
-    command: mage start divelog
-    container_name: magic
-    env_file:
-      - .env
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: diveroast-backend
     ports:
-      - 6789:6789
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
     volumes:
-      - .:/home/src/
+      - ./.lancedb:/app/.lancedb
+      - ./.dlt:/app/.dlt
     restart: on-failure:5
-    networks:
-      - shared_network
 
-  mlflow:
+  frontend:
     build:
-      context: .
-      dockerfile: mlflow.dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: diveroast-frontend
     ports:
-      - "8012:8012"
-    volumes:
-      - "${PWD}/mlflow:/home/mlflow/"
-    networks:
-      - shared_network
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: on-failure:5
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: diveroast-phoenix
+    ports:
+      - "6006:6006"
+      - "4317:4317"
+    restart: on-failure:5

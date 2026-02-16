@@ -136,3 +136,13 @@ cython_debug/
 credentials.json
 mlflow/*
 mage_data/*
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# Claude
+.CLAUDE.md
+
+# Local articles / decision logs
+articles/

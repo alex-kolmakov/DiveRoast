@@ -1,13 +1,20 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
     hooks:
-      - id: black
-        language_version: python3.11
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
   - repo: local
     hooks:
+      - id: pyrefly
+        name: pyrefly type check
+        entry: .venv/bin/pyrefly check
+        language: system
+        types: [python]
+        pass_filenames: false
       - id: pytest-check
         name: pytest-check
-        entry: pytest
+        entry: .venv/bin/pytest
         language: system
         pass_filenames: false

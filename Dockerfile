@@ -1,17 +1,23 @@
-FROM mageai/mageai:0.9.73
-ARG PIP=pip3
+FROM python:3.11-slim
 
-ARG MAGE_CODE_PATH=/home/src
+WORKDIR /app
 
-WORKDIR ${MAGE_CODE_PATH}
+# Install uv for fast dependency management
+RUN pip install uv
 
-COPY . .
-COPY divelog/requirements.txt .
-RUN ${PIP} install --upgrade pip && ${PIP} install -r requirements.txt
-RUN dlt --non-interactive init rest_api lancedb
+# Copy project files
+COPY pyproject.toml .
+COPY src/ src/
 
-WORKDIR ${MAGE_CODE_PATH}
+# Install dependencies
+RUN uv pip install --system .
 
-ENV PYTHONPATH="${PYTHONPATH}:/home/src"
+# Copy remaining files
+COPY tests/ tests/
+COPY .dlt/ .dlt/
 
-CMD ["/bin/sh", "-c", "/app/run_app.sh"]
+ENV PYTHONPATH="/app"
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
