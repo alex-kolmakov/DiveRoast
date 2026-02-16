@@ -53,7 +53,12 @@ class DiverRoastAgent:
             args = dict(function_call.args) if function_call.args else {}
 
             # Inject dive_data_json for tools that need it
-            if func_name in ("analyze_dive_profile", "get_dive_summary"):
+            if func_name in (
+                "analyze_dive_profile",
+                "get_dive_summary",
+                "list_dives",
+                "analyze_all_dives",
+            ):
                 args["dive_data_json"] = self._get_dive_data_json()
 
             func = TOOL_FUNCTIONS.get(func_name)

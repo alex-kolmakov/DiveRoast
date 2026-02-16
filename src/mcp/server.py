@@ -150,8 +150,7 @@ def analyze_dive_profile(dive_number: str) -> str:
             f"- {i}" for i in issues
         )
     return (
-        f"Dive {dive_number} Analysis:\n{summary}\n\n"
-        f"No major safety issues detected."
+        f"Dive {dive_number} Analysis:\n{summary}\n\nNo major safety issues detected."
     )
 
 

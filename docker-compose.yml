@@ -11,6 +11,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     volumes:
       - ./.lancedb:/app/.lancedb
       - ./.dlt:/app/.dlt

@@ -99,6 +99,114 @@ def analyze_dive_profile(dive_number: str, dive_data_json: str) -> str:
             return f"Dive {dive_number} Analysis:\n{summary}\n\nNo major safety issues detected. Dive looks clean."
 
 
+def list_dives(dive_data_json: str) -> str:
+    """List all dives in the loaded dive log with basic info."""
+    tracer = get_tracer()
+    with tracer.start_as_current_span(
+        "tool.list_dives",
+        attributes={"openinference.span.kind": "TOOL"},
+    ):
+        df = pd.read_json(io.StringIO(dive_data_json))
+        if df.empty:
+            return "No dive data loaded."
+        dive_nums = sorted(df["dive_number"].unique().tolist())
+        lines = []
+        for dn in dive_nums:
+            dive_df = _filter_dive(df, str(dn))
+            first = dive_df.iloc[0]
+            site = first.get("dive_site_name", "Unknown")
+            max_depth = dive_df["depth"].max()
+            rating = first.get("rating", "N/A")
+            lines.append(f"  #{dn}: {site} — {max_depth:.1f}m max — rating {rating}/5")
+        return f"Loaded dives ({len(dive_nums)}):\n" + "\n".join(lines)
+
+
+def analyze_all_dives(dive_data_json: str) -> str:
+    """Analyze all dives together: aggregate stats, safety concerns, worst offenders."""
+    tracer = get_tracer()
+    with tracer.start_as_current_span(
+        "tool.analyze_all_dives",
+        attributes={"openinference.span.kind": "TOOL"},
+    ):
+        df = pd.read_json(io.StringIO(dive_data_json))
+        if df.empty:
+            return "No dive data loaded."
+
+        features = extract_features(df)
+        if features.empty:
+            return "Could not extract features from dive data."
+
+        n = len(features)
+
+        # Overall stats
+        avg_max_depth = features["max_depth"].mean()
+        deepest = features["max_depth"].max()
+        deepest_dive = features.loc[features["max_depth"].idxmax(), "dive_number"]
+        avg_rating = features["rating"].mean() if "rating" in features.columns else None
+        avg_sac = (
+            features["sac_rate"].mean()
+            if "sac_rate" in features.columns and features["sac_rate"].notna().any()
+            else None
+        )
+
+        stats_lines = [
+            f"Total dives: {n}",
+            f"Avg max depth: {avg_max_depth:.1f}m",
+            f"Deepest dive: #{deepest_dive} at {deepest:.1f}m",
+        ]
+        if avg_sac is not None:
+            stats_lines.append(f"Avg SAC rate: {avg_sac:.1f} l/min")
+        if avg_rating is not None:
+            stats_lines.append(f"Avg rating: {avg_rating:.1f}/5")
+
+        # Safety concerns
+        high_ascent = (features["max_ascend_speed"] > 10).sum()
+        low_ndl = (features["min_ndl"] < 5).sum()
+        high_sac = (
+            (features["sac_rate"] > 20).sum() if "sac_rate" in features.columns else 0
+        )
+        deep = (features["max_depth"] > 30).sum()
+        adverse = (
+            (features["adverse_conditions"] == 1).sum()
+            if "adverse_conditions" in features.columns
+            else 0
+        )
+
+        def _pct(count: int) -> str:
+            return f"{count}/{n} ({count * 100 // n}%)"
+
+        concern_lines = [
+            f"High ascent rate (>10 m/min): {_pct(high_ascent)}",
+            f"Low NDL (<5 min): {_pct(low_ndl)}",
+            f"High SAC (>20 l/min): {_pct(high_sac)}",
+            f"Deep dives (>30m): {_pct(deep)}",
+            f"Adverse conditions: {_pct(adverse)}",
+        ]
+
+        # Top 3 worst offenders by ascent speed
+        worst = features.nlargest(3, "max_ascend_speed")[
+            ["dive_number", "max_ascend_speed"]
+        ]
+        offender_lines = [
+            f"  #{int(row['dive_number'])}: {row['max_ascend_speed']:.1f} m/min"
+            for _, row in worst.iterrows()
+        ]
+
+        sections = [
+            "=== AGGREGATE DIVE ANALYSIS ===",
+            "",
+            "Overall Stats:",
+            *[f"  {line}" for line in stats_lines],
+            "",
+            "Safety Concerns:",
+            *[f"  {line}" for line in concern_lines],
+            "",
+            "Top Worst Offenders (ascent speed):",
+            *offender_lines,
+        ]
+        return "\n".join(sections)
+
+
 def get_dive_summary(dive_number: str, dive_data_json: str) -> str:
     """Get a summary of a specific dive including location, depth, duration, and rating."""
     tracer = get_tracer()
@@ -163,7 +271,7 @@ TOOL_DECLARATIONS = [
     ),
     types.FunctionDeclaration(
         name="analyze_dive_profile",
-        description="Analyze a specific dive's profile data and flag any safety issues like high ascent rate, low NDL, or high air consumption.",
+        description="Analyze a specific dive's profile data and flag any safety issues like high ascent rate, low NDL, or high air consumption. The dive data is automatically available from the uploaded dive log.",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
@@ -171,17 +279,13 @@ TOOL_DECLARATIONS = [
                     type=types.Type.STRING,
                     description="The dive number to analyze",
                 ),
-                "dive_data_json": types.Schema(
-                    type=types.Type.STRING,
-                    description="JSON string of the dive data DataFrame",
-                ),
             },
-            required=["dive_number", "dive_data_json"],
+            required=["dive_number"],
         ),
     ),
     types.FunctionDeclaration(
         name="get_dive_summary",
-        description="Get a quick summary of a specific dive including location, max depth, duration, SAC rate, and rating.",
+        description="Get a quick summary of a specific dive including location, max depth, duration, SAC rate, and rating. The dive data is automatically available from the uploaded dive log.",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
@@ -189,12 +293,24 @@ TOOL_DECLARATIONS = [
                     type=types.Type.STRING,
                     description="The dive number to summarize",
                 ),
-                "dive_data_json": types.Schema(
-                    type=types.Type.STRING,
-                    description="JSON string of the dive data DataFrame",
-                ),
             },
-            required=["dive_number", "dive_data_json"],
+            required=["dive_number"],
+        ),
+    ),
+    types.FunctionDeclaration(
+        name="list_dives",
+        description="List all dives in the uploaded dive log with site name, max depth, and rating. Use this to give the diver an overview of their log before diving into specifics.",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={},
+        ),
+    ),
+    types.FunctionDeclaration(
+        name="analyze_all_dives",
+        description="Analyze ALL dives in the uploaded log at once: aggregate stats, safety concern percentages, and top worst offenders. Use this when the diver asks for an overall roast, pattern analysis, or holistic review of their dive log.",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={},
         ),
     ),
 ]
@@ -204,4 +320,6 @@ TOOL_FUNCTIONS = {
     "search_dan_guidelines": search_dan_guidelines,
     "analyze_dive_profile": analyze_dive_profile,
     "get_dive_summary": get_dive_summary,
+    "list_dives": list_dives,
+    "analyze_all_dives": analyze_all_dives,
 }

@@ -97,6 +97,9 @@ def extract_features(df: pd.DataFrame) -> pd.DataFrame:
     )
     features["sac_rate"] = features["sac_rate"].fillna(features["sac_rate"].mean())
 
+    # Fill any remaining NaN values (e.g. single-dive with all-NaN pressure)
+    # with 0 before dropping rows that are entirely empty.
+    features = features.fillna(0)
     features = features.dropna()
 
     return label_adverse_conditions(features)

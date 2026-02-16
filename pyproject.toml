@@ -16,6 +16,8 @@ dependencies = [
     # RAG
     "dlt[lancedb]>=0.5",
     "lancedb>=0.13",
+    "tantivy>=0.22",
+    "pylance>=0.13",
     "beautifulsoup4>=4.12",
     "langchain-text-splitters>=0.2",
     # LLM
@@ -51,7 +53,7 @@ packages = ["src"]
 [tool.ruff]
 target-version = "py311"
 line-length = 88
-exclude = ["src/rag/rest_api"]
+exclude = []
 
 [tool.ruff.lint]
 select = [

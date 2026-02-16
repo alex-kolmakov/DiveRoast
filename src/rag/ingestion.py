@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Any
 
@@ -5,31 +6,27 @@ import dlt
 import lancedb
 from bs4 import BeautifulSoup
 from dlt.destinations.adapters import lancedb_adapter
-from dlt.sources.helpers.rest_client.paginators import BasePaginator
+from dlt.sources.helpers.rest_client.paginators import PageNumberPaginator
+from dlt.sources.rest_api import rest_api_source
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from requests import Request, Response
+from requests import Response
 
 from src.config import settings
-from src.rag.rest_api import rest_api_source
+
+logger = logging.getLogger(__name__)
 
 
-class WordPressPaginator(BasePaginator):
-    def __init__(self, start_page: int = 1, per_page: int = settings.DAN_PER_PAGE):
-        self.current_page = start_page
-        self.per_page = per_page
+class WordPressPaginator(PageNumberPaginator):
+    """WordPress API returns 400 when requesting a page beyond the last one.
 
-    def update_request(self, request: Request) -> None:
-        if request.params is None:
-            request.params = {}
-        request.params["page"] = self.current_page
-        request.params["per_page"] = self.per_page
+    This paginator treats that as end-of-pagination instead of an error.
+    """
 
     def update_state(self, response: Response, data: list[Any] | None = None) -> None:
-        if not data or len(data) < self.per_page or response.status_code == 400:
+        if response.status_code == 400:
             self._has_next_page = False
-        else:
-            self.current_page += 1
-            self._has_next_page = True
+            return
+        super().update_state(response, data)
 
 
 def remove_html_tags(text):
@@ -55,94 +52,87 @@ def chunk_text(text, chunk_size=None, chunk_overlap=None):
     return text_splitter.split_text(text)
 
 
+def _make_resource(name: str, path: str) -> dict:
+    """Build a resource config for a DAN WordPress API endpoint."""
+    return {
+        "name": name,
+        "endpoint": {
+            "path": path,
+            "params": {
+                "per_page": settings.DAN_PER_PAGE,
+            },
+            "incremental": {
+                "cursor_path": "modified",
+                "initial_value": settings.DAN_START_DATE,
+                "start_param": "modified_after",
+            },
+            # WordPress returns 400 when requesting past the last page
+            "response_actions": [
+                {"status_code": 400, "action": "ignore"},
+            ],
+        },
+    }
+
+
 def wordpress_rest_api_source():
     """Create a dlt source for DAN WordPress REST API endpoints."""
-    base_url = settings.DAN_BASE_URL
-    per_page = settings.DAN_PER_PAGE
-    start_date = settings.DAN_START_DATE
-
     return rest_api_source(
         {
             "client": {
-                "base_url": base_url,
-                "paginator": WordPressPaginator(start_page=1),
+                "base_url": settings.DAN_BASE_URL,
+                "paginator": WordPressPaginator(
+                    base_page=1,
+                    page_param="page",
+                    total_path=None,
+                ),
             },
             "resource_defaults": {
                 "primary_key": "id",
                 "write_disposition": "merge",
-                "endpoint": {
-                    "params": {
-                        "per_page": per_page,
-                    },
-                },
             },
             "resources": [
-                {
-                    "name": "dan_health_resources",
-                    "endpoint": {
-                        "path": "dan_health_resources",
-                        "params": {
-                            "modified_after": {
-                                "type": "incremental",
-                                "cursor_path": "modified",
-                                "initial_value": start_date,
-                            },
-                        },
-                    },
-                },
-                {
-                    "name": "dan_alert_diver",
-                    "endpoint": {
-                        "path": "dan_alert_diver",
-                        "params": {
-                            "modified_after": {
-                                "type": "incremental",
-                                "cursor_path": "modified",
-                                "initial_value": start_date,
-                            },
-                        },
-                    },
-                },
-                {
-                    "name": "dan_diving_incidents",
-                    "endpoint": {
-                        "path": "dan_diving_incidents",
-                        "params": {
-                            "modified_after": {
-                                "type": "incremental",
-                                "cursor_path": "modified",
-                                "initial_value": start_date,
-                            },
-                        },
-                    },
-                },
-                {
-                    "name": "dan_diseases_conds",
-                    "endpoint": {
-                        "path": "dan_diseases_conds",
-                        "params": {
-                            "modified_after": {
-                                "type": "incremental",
-                                "cursor_path": "modified",
-                                "initial_value": start_date,
-                            },
-                        },
-                    },
-                },
+                _make_resource("dan_health_resources", "dan_health_resources"),
+                _make_resource("dan_alert_diver", "dan_alert_diver"),
+                _make_resource("dan_diving_incidents", "dan_diving_incidents"),
+                _make_resource("dan_diseases_conds", "dan_diseases_conds"),
             ],
         }
     )
 
 
+_chunk_count = 0
+
+
 @dlt.transformer()
 def dan_articles(article):
     """Transform DAN articles into text chunks for vectorization."""
+    global _chunk_count
+    title = article.get("title", {}).get("rendered", "unknown")
     clean_content = remove_html_tags(article["content"]["rendered"])
-    yield from chunk_text(clean_content)
+    chunks = chunk_text(clean_content)
+    _chunk_count += len(chunks)
+    logger.info(
+        "Chunked article '%s' -> %d chunks (total: %d)",
+        title,
+        len(chunks),
+        _chunk_count,
+    )
+    for chunk in chunks:
+        yield {"value": chunk}
 
 
 def run_pipeline(*args, **kwargs):
     """Run the DAN articles ingestion pipeline into LanceDB."""
+    global _chunk_count
+    _chunk_count = 0
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
+
+    logger.info("Starting DAN ingestion pipeline...")
+    logger.info("Base URL: %s", settings.DAN_BASE_URL)
+
     pipeline = dlt.pipeline(
         pipeline_name="dan_articles",
         destination="lancedb",
@@ -151,14 +141,22 @@ def run_pipeline(*args, **kwargs):
 
     data = wordpress_rest_api_source() | dan_articles
 
-    pipeline.run(
+    # Use 'replace' disposition: chunks don't have a natural primary key,
+    # and 'merge' requires one for LanceDB orphan removal.
+    info = pipeline.run(
         lancedb_adapter(data, embed="value"),
         table_name="texts",
-        write_disposition="merge",
+        write_disposition="replace",
     )
 
+    logger.info("Pipeline load info: %s", info)
+
+    logger.info("Building FTS index...")
     db = lancedb.connect(settings.LANCEDB_URI)
     dbtable = db.open_table(settings.LANCEDB_TABLE_NAME)
     dbtable.create_fts_index("value", replace=True)
+
+    row_count = dbtable.count_rows()
+    logger.info("Done! Table '%s' has %d rows.", settings.LANCEDB_TABLE_NAME, row_count)
 
     return settings.LANCEDB_TABLE_NAME

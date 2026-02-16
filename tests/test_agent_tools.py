@@ -1,8 +1,10 @@
 import pandas as pd
 
 from src.agent.tools import (
+    analyze_all_dives,
     analyze_dive_profile,
     get_dive_summary,
+    list_dives,
 )
 
 
@@ -54,3 +56,32 @@ def test_analyze_dive_profile_not_found():
     df = _make_dive_data()
     result = analyze_dive_profile("999", df.to_json())
     assert "No data found" in result
+
+
+def test_list_dives():
+    df = _make_dive_data()
+    result = list_dives(df.to_json())
+
+    assert "Loaded dives (2)" in result
+    assert "Reef Site" in result
+    assert "15.0m" in result
+    assert "30.0m" in result
+    assert "#1" in result
+    assert "#2" in result
+
+
+def test_analyze_all_dives():
+    df = _make_dive_data()
+    result = analyze_all_dives(df.to_json())
+
+    assert "AGGREGATE DIVE ANALYSIS" in result
+    assert "Overall Stats:" in result
+    assert "Safety Concerns:" in result
+    assert "Worst Offenders" in result
+    assert "Total dives: 2" in result
+
+
+def test_analyze_all_dives_empty():
+    df = pd.DataFrame()
+    result = analyze_all_dives(df.to_json())
+    assert "No dive data loaded" in result
