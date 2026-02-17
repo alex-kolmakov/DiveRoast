@@ -3,19 +3,19 @@
 **A conversational agent that roasts your SCUBA diving — backed by real safety data.**
 
 [![CI](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/ci.yaml/badge.svg)](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/ci.yaml)
-![License](https://img.shields.io/badge/license-MIT-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
-![Node](https://img.shields.io/badge/node-20-green?logo=node.js&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-blue?logo=docker&logoColor=white)
-
-![Gemini](https://img.shields.io/badge/Google%20Gemini-LLM-4285F4?logo=google&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-blue?logo=docker&logoColor=white)
+![dlt](https://img.shields.io/badge/dlt-data%20pipeline-teal)
+
+![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
+![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
+![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
+
+
+![Node](https://img.shields.io/badge/node-20-green?logo=node.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)
-![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
-![dlt](https://img.shields.io/badge/dlt-data%20pipeline-teal)
-![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
-![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
 
 ## What is this?
 
