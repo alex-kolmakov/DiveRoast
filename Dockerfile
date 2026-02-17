@@ -14,7 +14,9 @@ RUN uv pip install --system .
 
 # Copy remaining files
 COPY tests/ tests/
-COPY .dlt/ .dlt/
+
+# Create default dlt config (secrets come from env vars at runtime)
+RUN mkdir -p .dlt && printf '[runtime]\ndlthub_telemetry = true\n' > .dlt/config.toml
 
 ENV PYTHONPATH="/app"
 
