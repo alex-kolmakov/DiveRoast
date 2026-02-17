@@ -27,7 +27,8 @@ DiveRoast analyzes your SCUBA dive logs, identifies safety issues, and delivers 
 - **MCP server** — all diving tools exposed via the Model Context Protocol for use in Claude Desktop, Cursor, or any MCP client
 - **Observability** — full LLM/tool/RAG tracing with Arize Phoenix
 
-<!-- TODO: Add screenshot -->
+![Screen Recording 2026-02-17 at 5 14 59 PM](https://github.com/user-attachments/assets/c81ba2e6-4cf5-4e92-8f8e-9ef496a26aa6)
+
 
 ## Quick Start (Docker)
 
