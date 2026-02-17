@@ -1,3 +1,4 @@
+import contextlib
 import xml.etree.ElementTree as ET
 
 import pandas as pd
@@ -21,11 +22,21 @@ def extract_all_dive_profiles_refined(root):
     """
     dive_data = []
 
-    # Create a map of divesite UUIDs to their names
-    divesites = {
-        ds.attrib["uuid"]: ds.attrib.get("name", "N/A")
-        for ds in root.findall(".//site")
-    }
+    # Create a map of divesite UUIDs to their names and GPS coordinates
+    divesites = {}
+    for ds in root.findall(".//site"):
+        gps = ds.attrib.get("gps", "")
+        lat, lon = None, None
+        if gps:
+            parts = gps.strip().split()
+            if len(parts) == 2:
+                with contextlib.suppress(ValueError):
+                    lat, lon = float(parts[0]), float(parts[1])
+        divesites[ds.attrib["uuid"]] = {
+            "name": ds.attrib.get("name", "N/A"),
+            "latitude": lat,
+            "longitude": lon,
+        }
     # Track dive sites outside of trip tags
     trip_map = {}
     for trip in root.findall(".//trip"):
@@ -38,7 +49,12 @@ def extract_all_dive_profiles_refined(root):
         dive_number = dive.attrib.get("number", "N/A")
         trip_name = trip_map.get(dive_number, "N/A")
         dive_site_uuid = dive.attrib.get("divesiteid", "N/A")
-        dive_site_name = divesites.get(dive_site_uuid, "N/A")
+        site_info = divesites.get(
+            dive_site_uuid, {"name": "N/A", "latitude": None, "longitude": None}
+        )
+        dive_site_name = site_info["name"]
+        latitude = site_info["latitude"]
+        longitude = site_info["longitude"]
 
         sac_rate = dive.attrib.get("sac", "N/A").replace(" l/min", "")
         rating = dive.attrib.get("rating", "N/A")
@@ -78,7 +94,9 @@ def extract_all_dive_profiles_refined(root):
                     "rbt": float(rbt) if rbt else None,
                     "ndl": float(ndl) if ndl else None,
                     "sac_rate": float(sac_rate) if sac_rate != "N/A" else None,
-                    "rating": int(rating) if rating else None,
+                    "rating": int(rating) if rating and rating != "N/A" else None,
+                    "latitude": latitude,
+                    "longitude": longitude,
                 }
                 dive_data.append(data_point)
     return pd.DataFrame(dive_data)

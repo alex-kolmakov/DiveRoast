@@ -29,16 +29,40 @@ class DiverRoastAgent:
     def set_dive_data(self, df: pd.DataFrame):
         """Store parsed dive log data for tool calls.
 
-        Also seeds the conversation history so the LLM knows data is available.
+        Also seeds the conversation history so the LLM knows data is available,
+        including dive site names and locations for human-friendly references.
         """
         self.dive_data = df
         dive_numbers = sorted(df["dive_number"].unique().tolist())
+
+        # Build site directory for the agent
+        site_lines = []
+        if "dive_site_name" in df.columns:
+            for dn in dive_numbers:
+                dive_rows = df[df["dive_number"] == dn]
+                site = str(dive_rows["dive_site_name"].iloc[0])
+                trip = str(dive_rows.get("trip_name", pd.Series([""])).iloc[0])
+                if site and site != "N/A":
+                    label = f"  Dive {dn}: {site}"
+                    if trip and trip != "N/A":
+                        label += f" ({trip})"
+                    site_lines.append(label)
+
+        site_info = ""
+        if site_lines:
+            site_info = (
+                "\n\nDive sites:\n"
+                + "\n".join(site_lines[:50])
+                + ("\n  ..." if len(site_lines) > 50 else "")
+            )
+
         context_msg = (
-            f"[System: The diver has uploaded a dive log containing {len(dive_numbers)} dives "
-            f"(dive numbers: {', '.join(str(d) for d in dive_numbers)}). "
+            f"[System: The diver has uploaded a dive log containing {len(dive_numbers)} dives. "
             f"The dive data is now loaded and available through your tools. "
             f"Use list_dives, analyze_all_dives, analyze_dive_profile, and get_dive_summary "
-            f"to access this data. Do NOT ask the user to upload — it's already done.]"
+            f"to access this data. Do NOT ask the user to upload — it's already done. "
+            f"When referencing dives, always use the site name and location, not just the dive number."
+            f"{site_info}]"
         )
         self.history.append(
             types.Content(

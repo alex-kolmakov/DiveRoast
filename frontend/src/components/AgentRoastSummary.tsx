@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
+import Markdown from "react-markdown";
 import type { ChatMessage } from "@/types";
 
 interface Props {
@@ -25,9 +26,9 @@ export function AgentRoastSummary({ messages, isLoading }: Props) {
             <span className="text-sm">Generating roast...</span>
           </div>
         ) : firstAssistantMsg?.content ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {firstAssistantMsg.content}
-          </p>
+          <div className="prose prose-sm prose-invert max-w-none leading-relaxed">
+            <Markdown>{firstAssistantMsg.content}</Markdown>
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">
             Waiting for the agent to roast your dives...

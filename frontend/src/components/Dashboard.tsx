@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Anchor, ArrowUp, Wind, Thermometer } from "lucide-react";
+import { Anchor, ArrowUp, Wind, Thermometer, User, MapPin, Waves, Award } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { RangeGauge } from "@/components/RangeGauge";
 import { AgentRoastSummary } from "@/components/AgentRoastSummary";
@@ -70,10 +70,63 @@ export function Dashboard({ data, messages, isLoading, onToggleChat }: Props) {
         {/* Agent roast summary */}
         <AgentRoastSummary messages={messages} isLoading={isLoading} />
 
+        {/* Diver Profile */}
+        {data.diver_profile && (
+          <div>
+            <h2 className="mb-4 text-lg font-semibold">Diver Profile</h2>
+            <Card>
+              <CardContent className="grid gap-4 pt-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Award className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium capitalize">{data.diver_profile.experience_level}</div>
+                    <div className="text-xs text-muted-foreground">Experience Level</div>
+                  </div>
+                </div>
+                {data.diver_profile.water_types.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Waves className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{data.diver_profile.water_types.join(", ")}</div>
+                      <div className="text-xs text-muted-foreground">Water Types</div>
+                    </div>
+                  </div>
+                )}
+                {data.diver_profile.regions.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <MapPin className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{data.diver_profile.regions.join(", ")}</div>
+                      <div className="text-xs text-muted-foreground">Regions</div>
+                    </div>
+                  </div>
+                )}
+                {data.diver_profile.dive_sites.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{data.diver_profile.dive_sites.length} sites</div>
+                      <div className="text-xs text-muted-foreground">Dive Sites Visited</div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Top 3 problematic dives */}
         {data.top_problematic_dives.length > 0 && (
           <div>
-            <h2 className="mb-4 text-lg font-semibold">Most Problematic Dives</h2>
+            <h2 className="mb-4 text-lg font-semibold">Top 3 Worst Dives</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {data.top_problematic_dives.map((dive, i) => (
                 <ProblematicDiveCard key={dive.dive_number} dive={dive} rank={i + 1} />

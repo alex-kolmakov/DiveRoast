@@ -38,6 +38,10 @@ class DiveFeature(BaseModel):
     max_ascend_speed: float
     high_ascend_speed_count: float
     adverse_conditions: int
+    dive_site_name: str
+    trip_name: str
+    latitude: float | None
+    longitude: float | None
 
 
 class DiveMetricPoint(BaseModel):
@@ -52,16 +56,11 @@ class MetricRange(BaseModel):
     min_val: float
     max_val: float
     avg_val: float
+    worst_val: float | None
     safe_upper: float
     warning_upper: float
     zone: str  # "safe", "warning", "danger"
     per_dive: list[DiveMetricPoint]
-
-
-class DanIssueNote(BaseModel):
-    issue: str
-    relevance: str
-    search_url: str
 
 
 class ProblematicDive(BaseModel):
@@ -69,7 +68,8 @@ class ProblematicDive(BaseModel):
     danger_score: float
     features: DiveFeature
     issues: list[str]
-    dan_notes: list[DanIssueNote]
+    summary: str
+    pick_reason: str
 
 
 class AggregateStats(BaseModel):
@@ -80,9 +80,17 @@ class AggregateStats(BaseModel):
     dives_with_adverse_conditions: int
 
 
+class DiverProfile(BaseModel):
+    water_types: list[str]
+    regions: list[str]
+    experience_level: str
+    dive_sites: list[str]
+
+
 class DashboardResponse(BaseModel):
     session_id: str
     aggregate_stats: AggregateStats
     metrics: list[MetricRange]
     all_dives: list[DiveFeature]
     top_problematic_dives: list[ProblematicDive]
+    diver_profile: DiverProfile

@@ -36,6 +36,8 @@ def test_extract_all_dive_profiles_refined():
         "ndl",
         "sac_rate",
         "rating",
+        "latitude",
+        "longitude",
     }
     assert len(df) == 37882, "Dataframe should have 37882 rows"
     assert df["depth"].iloc[200] == 4.7

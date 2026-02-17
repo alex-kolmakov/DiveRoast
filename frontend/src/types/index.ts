@@ -36,6 +36,10 @@ export interface DiveFeature {
   max_ascend_speed: number;
   high_ascend_speed_count: number;
   adverse_conditions: number;
+  dive_site_name: string;
+  trip_name: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface DiveMetricPoint {
@@ -50,16 +54,11 @@ export interface MetricRange {
   min_val: number;
   max_val: number;
   avg_val: number;
+  worst_val: number | null;
   safe_upper: number;
   warning_upper: number;
   zone: "safe" | "warning" | "danger";
   per_dive: DiveMetricPoint[];
-}
-
-export interface DanIssueNote {
-  issue: string;
-  relevance: string;
-  search_url: string;
 }
 
 export interface ProblematicDive {
@@ -67,7 +66,8 @@ export interface ProblematicDive {
   danger_score: number;
   features: DiveFeature;
   issues: string[];
-  dan_notes: DanIssueNote[];
+  summary: string;
+  pick_reason: string;
 }
 
 export interface AggregateStats {
@@ -78,10 +78,18 @@ export interface AggregateStats {
   dives_with_adverse_conditions: number;
 }
 
+export interface DiverProfile {
+  water_types: string[];
+  regions: string[];
+  experience_level: string;
+  dive_sites: string[];
+}
+
 export interface DashboardData {
   session_id: string;
   aggregate_stats: AggregateStats;
   metrics: MetricRange[];
   all_dives: DiveFeature[];
   top_problematic_dives: ProblematicDive[];
+  diver_profile: DiverProfile;
 }

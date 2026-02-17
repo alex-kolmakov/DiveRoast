@@ -1,10 +1,15 @@
+from unittest.mock import patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.api.dependencies import get_or_create_session
 from src.api.main import app
 from src.api.routes.dashboard import (
+    _classify_experience,
     _classify_ndl_zone,
+    _classify_region,
+    _classify_water_type,
     _classify_zone,
     _compute_danger_score,
     _identify_issues,
@@ -121,6 +126,42 @@ class TestIdentifyIssues:
         assert "adverse conditions" in issues
 
 
+class TestClassifyWaterType:
+    def test_tropical(self):
+        assert _classify_water_type(28.0) == "Tropical"
+
+    def test_temperate(self):
+        assert _classify_water_type(20.0) == "Temperate"
+
+    def test_cold(self):
+        assert _classify_water_type(8.0) == "Cold water"
+
+
+class TestClassifyRegion:
+    def test_red_sea(self):
+        assert _classify_region(27.0, 34.0) == "Red Sea"
+
+    def test_caribbean(self):
+        assert _classify_region(18.0, -65.0) == "Caribbean"
+
+    def test_unknown(self):
+        assert _classify_region(0.0, 0.0) is None
+
+
+class TestClassifyExperience:
+    def test_beginner(self):
+        assert _classify_experience(10, 15.0) == "beginner"
+
+    def test_intermediate(self):
+        assert _classify_experience(50, 20.0) == "intermediate"
+
+    def test_advanced_by_depth(self):
+        assert _classify_experience(10, 45.0) == "advanced"
+
+    def test_advanced_by_count(self):
+        assert _classify_experience(150, 15.0) == "advanced"
+
+
 # --- Route integration tests ---
 
 
@@ -142,7 +183,11 @@ async def test_dashboard_no_dive_data():
 
 
 @pytest.mark.anyio
-async def test_dashboard_success(session_with_dives):
+@patch(
+    "src.api.routes.dashboard._generate_dive_summaries",
+    return_value=["Summary 1.", "Summary 2.", "Summary 3."],
+)
+async def test_dashboard_success(mock_summaries, session_with_dives):
     sid = session_with_dives
     transport = ASGITransport(app=app)
 
@@ -159,6 +204,7 @@ async def test_dashboard_success(session_with_dives):
     assert "metrics" in data
     assert "all_dives" in data
     assert "top_problematic_dives" in data
+    assert "diver_profile" in data
 
     # Aggregate stats
     stats = data["aggregate_stats"]
@@ -166,24 +212,29 @@ async def test_dashboard_success(session_with_dives):
     assert isinstance(stats["avg_max_depth"], float)
     assert isinstance(stats["avg_sac_rate"], float)
 
-    # Metrics have per_dive values
+    # Metrics have per_dive values and worst_val
     assert len(data["metrics"]) > 0
     for metric in data["metrics"]:
         assert metric["zone"] in ("safe", "warning", "danger")
         assert "label" in metric
         assert "unit" in metric
         assert "per_dive" in metric
+        assert "worst_val" in metric
         assert len(metric["per_dive"]) == stats["total_dives"]
         for pt in metric["per_dive"]:
             assert "dive_number" in pt
             assert "value" in pt
             assert pt["zone"] in ("safe", "warning", "danger")
 
-    # All dives have required fields
+    # All dives have required fields including new ones
     for dive in data["all_dives"]:
         assert "dive_number" in dive
         assert "max_depth" in dive
         assert "max_ascend_speed" in dive
+        assert "dive_site_name" in dive
+        assert "trip_name" in dive
+        assert "latitude" in dive
+        assert "longitude" in dive
 
     # Top problematic dives are at most 3 and ordered by danger score
     assert len(data["top_problematic_dives"]) <= 3
@@ -191,11 +242,18 @@ async def test_dashboard_success(session_with_dives):
         scores = [d["danger_score"] for d in data["top_problematic_dives"]]
         assert scores == sorted(scores, reverse=True)
 
-    # Problematic dives have dan_notes with search_url
+    # Problematic dives have summary and pick_reason
     for dive in data["top_problematic_dives"]:
-        assert "dan_notes" in dive
-        for note in dive["dan_notes"]:
-            assert "issue" in note
-            assert "relevance" in note
-            assert "search_url" in note
-            assert note["search_url"].startswith("https://dan.org/?s=")
+        assert "summary" in dive
+        assert isinstance(dive["summary"], str)
+        assert len(dive["summary"]) > 0
+        assert "pick_reason" in dive
+        assert isinstance(dive["pick_reason"], str)
+
+    # Diver profile structure
+    profile = data["diver_profile"]
+    assert "water_types" in profile
+    assert "regions" in profile
+    assert "experience_level" in profile
+    assert "dive_sites" in profile
+    assert profile["experience_level"] in ("beginner", "intermediate", "advanced")

@@ -32,7 +32,9 @@ export function RangeGauge({ metric }: Props) {
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{metric.label}</span>
         <span className={`text-sm font-semibold ${ZONE_TEXT[metric.zone]}`}>
-          {metric.avg_val.toFixed(1)} {metric.unit}
+          {metric.worst_val != null
+            ? `${metric.worst_val.toFixed(1)} ${metric.unit}`
+            : `${metric.min_val.toFixed(1)}° – ${metric.max_val.toFixed(1)}°`}
         </span>
       </div>
 

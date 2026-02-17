@@ -71,6 +71,10 @@ def test_extract_features():
         "max_ascend_speed",
         "high_ascend_speed_count",
         "adverse_conditions",
+        "dive_site_name",
+        "trip_name",
+        "latitude",
+        "longitude",
     }
     assert set(features.columns) == expected_columns
     assert features["adverse_conditions"].isin([0, 1]).all()

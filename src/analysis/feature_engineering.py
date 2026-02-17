@@ -73,6 +73,34 @@ def extract_features(df: pd.DataFrame) -> pd.DataFrame:
             min_ndl=("ndl", "min"),
             sac_rate=("sac_rate", "first"),
             rating=("rating", "first"),
+            **(
+                {
+                    "dive_site_name": ("dive_site_name", "first"),
+                }
+                if "dive_site_name" in data.columns
+                else {}
+            ),
+            **(
+                {
+                    "trip_name": ("trip_name", "first"),
+                }
+                if "trip_name" in data.columns
+                else {}
+            ),
+            **(
+                {
+                    "latitude": ("latitude", "first"),
+                }
+                if "latitude" in data.columns
+                else {}
+            ),
+            **(
+                {
+                    "longitude": ("longitude", "first"),
+                }
+                if "longitude" in data.columns
+                else {}
+            ),
         )
         .reset_index()
     )

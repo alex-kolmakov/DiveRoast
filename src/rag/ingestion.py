@@ -117,8 +117,9 @@ def dan_articles(article):
         len(chunks),
         _chunk_count,
     )
+    url = article.get("link", "")
     for chunk in chunks:
-        yield {"value": chunk}
+        yield {"value": chunk, "title": title, "url": url}
 
 
 def run_pipeline(*args, **kwargs):
