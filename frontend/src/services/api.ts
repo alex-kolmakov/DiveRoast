@@ -1,4 +1,4 @@
-import type { UploadResponse } from "../types";
+import type { DashboardData, UploadResponse } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -20,6 +20,19 @@ export async function uploadDiveLog(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Upload failed");
+  }
+
+  return response.json();
+}
+
+export async function fetchDashboard(
+  sessionId: string
+): Promise<DashboardData> {
+  const response = await fetch(`${API_BASE}/api/dashboard/${sessionId}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to load dashboard");
   }
 
   return response.json();

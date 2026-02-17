@@ -1,139 +1,151 @@
+# DiveRoast 🌊
 
-# Dive Log Autoreport
+**A conversational agent that roasts your SCUBA diving — backed by real safety data.**
 
->  that learns how to rate dives and gives advice on how to improve the worst ones.
+[![CI](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/ci.yaml/badge.svg)](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/ci.yaml)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
+![Node](https://img.shields.io/badge/node-20-green?logo=node.js&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-blue?logo=docker&logoColor=white)
 
-[![Linting and tests](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/lint_and_test.yaml/badge.svg)](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/lint_and_test.yaml)
+![Gemini](https://img.shields.io/badge/Google%20Gemini-LLM-4285F4?logo=google&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)
+![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
+![dlt](https://img.shields.io/badge/dlt-data%20pipeline-teal)
+![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
+![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
 
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![Mage](https://img.shields.io/badge/-mage-purple?style=for-the-badge&link=https%3A%2F%2Fmage.ai%2F)
-![dlt](https://img.shields.io/badge/-dlt-teal?style=for-the-badge&link=https%3A%2F%2Fdlthub.com%2F)
-![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
-![mlflow](https://img.shields.io/badge/mlflow-%23d9ead3.svg?style=for-the-badge&logo=numpy&logoColor=blue)
-![lance](https://img.shields.io/badge/-lancedb-white?style=for-the-badge&link=https%3A%2F%2Flancedb.com%2F)
-![Notion](https://img.shields.io/badge/Notion-%23000000.svg?style=for-the-badge&logo=notion&logoColor=white)
+## What is this?
 
+DiveRoast analyzes your SCUBA dive logs, identifies safety issues, and delivers witty critiques grounded in real incident reports from [Divers Alert Network (DAN)](https://www.diversalertnetwork.org/). Upload a dive log, get roasted, learn something.
 
+- **Agentic roasting** — Gemini with function-calling tools reviews your dives and delivers personalized safety commentary
+- **RAG over DAN content** — hybrid search (semantic + full-text) over DAN incident reports and guidelines via LanceDB
+- **Per-dive dashboard** — gauges for ascent rate, SAC rate, NDL, depth, and more
+- **MCP server** — all diving tools exposed via the Model Context Protocol for use in Claude Desktop, Cursor, or any MCP client
+- **Observability** — full LLM/tool/RAG tracing with Arize Phoenix
 
-## Problem statement
+<!-- TODO: Add screenshot -->
 
-SCUBA diving is a popular hobby that is enjoyed by millions of people around the world including myself. Divers need to keep a log of their dives, which includes information such as the time, location, depth, duration, temperature and other details. Nowadays, all of them are measured and stored by wearable devices that track lots of different parameters with only one goal in mind - to keep the diver safe from dangerous adverse effects.
-
-![image](https://github.com/user-attachments/assets/52d2ee9e-7a54-49d8-a44b-633aae10f34a)
-
-Once the data has been measured it needs to be stored in the digital format for us to access. And there are not so many alternatives for digital logbooks, and even fewer options when it comes to open-source tools that could be easily integrated and built upon. This is why for this task we are going to be using - [Subsurface](https://github.com/subsurface/subsurface)
-
-As with any other hobby, the subjective quality and rating of a dive can vary from amazing to horrendous. Any diver with decent experience will tell you just by looking at the [dive profiles](https://en.wikipedia.org/wiki/Dive_profile) below:
-
-| Dive #1  | Dive #2 |
-| ------------- | ------------- |
-| ![Dive #1](https://github.com/alex-kolmakov/divelog-autoreport/assets/3127175/5d043a91-39bb-4b77-a49c-bd19b82cf04a) | ![Dive #2](https://github.com/alex-kolmakov/divelog-autoreport/assets/3127175/86bc990c-55e9-4c14-9db9-310b88b3c4bb)|
-
-
-that Dive #1 is much worse than Dive #2. 
-
-Furthermore, even if we know that the dive was not great - how do we improve? What went wrong? What could have been done better?
-
-This is where Retrieval Augmented Generation (RAG) based on the [DAN](https://www.diversalertnetwork.org/) content comes into play. DAN is a non-profit organization that provides expert medical advice and research to help divers stay safe. They have a vast amount of content that can be used to generate insights on the dives and provide recommendations on how to improve.
-
-Now the question is:
-
-```
-> Can the model learn how to rate dives from the logbook like a diver does? 
-> And then helps to improve by providing insights on the worst dives?
-```
-
-If you are interested in why dives are different and how can anyone tell ~~(or who was the diver in the pictures :P)~~ - send me a message and I will be happy to explain!
-
-
-## Project overview
-
-It consists of 4 pipelines:
-
- - **Dives data** - a pipeline that loads the data from the Subsurface logbook, parses data from XML format.
- 
- - **DAN RAG** - a pipeline that loads the data from the DAN website, parses the content and vectorizes it for RAG. Then evaluates prompts based on relevance and faithfulness using llm as a judge.
- 
- - **Train model** - a pipeline that trains the model on the data, uses HyperOpt to pick the best parameters by looking at [ROC_AUC](https://developers.google.com/machine-learning/crash-course/classification/roc-and-auc) and accuracy. After MAX_EVALUATIONS of attempts to optimize hyperparameters, it saves the best model to the MLflow registry.
-
- - **Generate reports** - final pipeline that:
-    - loads the model from the MLflow registry 
-    - predicts the rating for the dives
-    - generates reports on each dive
-    - augments reports with insights using vectorized DAN content
-    - sends final reports to Notion
-
-### Architecture Diagram
-
-![Autodivelog drawio (6)](https://github.com/user-attachments/assets/9684b41c-2f5e-49f8-a1de-0b6fa8b54412)
-
-
-### File structure
-
-```
-├── divelog
-│   ├── custom                         # async functions and dlt pipeline are stored here
-│   ├── data_loade                     # data loader for the dives
-│   ├── pipelines                      # mage stores pipeline definitions here
-│   ├── requirements.txt               # python dependencies
-│   ├── transformers                   # data enrichment, report generation and more
-│   └── utils                          # dlt functions and notion api helpers
-├── documentation
-└── tests
-├── llm_pipeline_experiments.ipynb     # llm pipeline as one notebook for easy access
-├── anonymized_subsurface_export.ssrf  # anonymized data for testing
-├── credentials.json                   # should be here if you are using your own GDrive
-├── env.sample                         # sample env file
-├── docker-compose.yml
-├── Dockerfile                         # mage dockerfile
-└── mlflow.dockerfile                  # mlflow dockerfile
-```
-
-### Setup
-
-Start by running codespace: 
-
-<a href='https://codespaces.new/alex-kolmakov/divelog-autoreport'><img src='https://github.com/codespaces/badge.svg' alt='Open in GitHub Codespaces' style='max-width: 100%;'></a>
-
-
-https://github.com/user-attachments/assets/86db3084-5a48-4e6e-8e30-10c82f390b68
-
-
-
-Copy the sample env file:
+## Quick Start (Docker)
 
 ```bash
-cp env.sample .env
+git clone https://github.com/alex-kolmakov/divelog-autoreport.git
+cd divelog-autoreport
+cp .env.sample .env   # add your GEMINI_API_KEY
+docker compose up --build
 ```
 
-Start the mage and mlflow containers
+Open http://localhost:3000 in your browser.
+
+## Local Development
+
+### Backend
+
 ```bash
-docker-compose up --build
+uv pip install -e ".[dev]"
+uvicorn src.api.main:app --reload --port 8000
 ```
 
+### Frontend
 
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
+### Services
 
-For detailed setup instructions, please refer to the [setup documentation](./documentation/setup.md).
+| Service  | URL                    | Description            |
+| -------- | ---------------------- | ---------------------- |
+| Frontend | http://localhost:5173   | React dev server       |
+| Backend  | http://localhost:8000   | FastAPI + SSE          |
+| Phoenix  | http://localhost:6006   | Tracing UI             |
 
+## MCP Server
 
+DiveRoast exposes its diving tools as an MCP server (stdio transport). Add to your Claude Desktop or Cursor config:
 
-## Acknowledgements & Credits
+```json
+{
+  "mcpServers": {
+    "diveroast": {
+      "command": "python",
+      "args": ["-m", "src.mcp.server"],
+      "cwd": "/path/to/divelog-autoreport"
+    }
+  }
+}
+```
 
-If you're interested in contributing to this project, need to report issues or submit pull requests, please get in touch via 
-- [GitHub](https://github.com/alex-kolmakov)
-- [LinkedIn](https://linkedin.com/in/aleksandr-kolmakov)
+Available tools: `search_dan_incidents`, `search_dan_guidelines`, `parse_dive_log`, `analyze_dive_profile`, `get_dive_summary`, `list_dives`, `refresh_dan_data`.
 
-Project is still under develpoment and I try to keep my ideas for future improvement in a [related project](https://github.com/users/alex-kolmakov/projects/2). Feel free to add yours!
+## Environment Variables
 
-Before submitting your pull request, please refer to the [contribution guidelines](./documentation/contribution.md). It will guide you through the process of setting up the environment with pre-commit hooks and running the linting and tests.
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `GEMINI_API_KEY` | — | **Required.** Google Gemini API key |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini model to use |
+| `LANCEDB_URI` | `.lancedb` | Path to LanceDB storage |
+| `DESTINATION__LANCEDB__EMBEDDING_MODEL_PROVIDER` | `sentence-transformers` | Embedding provider |
+| `DESTINATION__LANCEDB__EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Embedding model |
+| `DESTINATION__LANCEDB__CREDENTIALS__URI` | `.lancedb` | LanceDB credentials URI |
+| `RAG_TOP_K` | `10` | Number of RAG results to retrieve |
+| `CHUNK_SIZE` | `2000` | Document chunk size for RAG |
+| `CHUNK_OVERLAP` | `100` | Chunk overlap for RAG |
+| `PHOENIX_COLLECTOR_ENDPOINT` | `http://localhost:6006/v1/traces` | Phoenix trace collector |
+| `PHOENIX_PROJECT_NAME` | `diveroast` | Phoenix project name |
 
+## Project Structure
 
-### Acknowledgements
-Acknowledgement to #DataTalksClub for mentoring and providing a safe platform to learn. It has been a privilege to take part in the  2024 Cohort, go and check them out!
+```
+src/
+├── agent/         # Gemini client, system prompts, function-calling tools
+├── analysis/      # Feature engineering (ascent speed, NDL, SAC rate)
+├── api/           # FastAPI gateway with SSE streaming
+├── mcp/           # MCP server (7 tools via FastMCP)
+├── parsers/       # Dive log parsing (ABC + Subsurface XML)
+├── pipelines/     # CLI scripts for DAN ingestion & dive processing
+├── rag/           # dlt pipeline + LanceDB hybrid search
+├── config.py
+└── observability.py
 
-![image](https://github.com/alex-kolmakov/divesite-species-analytics/assets/3127175/d6504180-31a9-4cb7-8cd0-26cd2d0a12ad)
+frontend/src/
+├── components/    # React UI components
+├── hooks/         # Custom React hooks
+├── services/      # API client
+├── types/         # TypeScript types
+└── App.tsx
+```
 
+## Testing
 
+```bash
+# Backend
+pytest tests/ -x --tb=short
 
+# Frontend type-check
+cd frontend && npx tsc --noEmit
+```
+
+## Contributing
+
+Install pre-commit hooks before pushing:
+
+```bash
+pre-commit install
+pre-commit run --all-files
+```
+
+The pre-commit pipeline runs **ruff** (lint + format), **pyrefly** (type check), and **pytest**.
+
+## License
+
+MIT
+
+## Acknowledgements
+
+Thanks to [#DataTalksClub](https://datatalks.club/) for mentoring and providing a platform to learn during the 2024 Cohort.

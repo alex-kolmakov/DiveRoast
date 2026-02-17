@@ -1,0 +1,201 @@
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from src.api.dependencies import get_or_create_session
+from src.api.main import app
+from src.api.routes.dashboard import (
+    _classify_ndl_zone,
+    _classify_zone,
+    _compute_danger_score,
+    _identify_issues,
+)
+from src.parsers import get_parser
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.fixture
+def session_with_dives():
+    """Create a session with real dive data from the fixture file."""
+    parser = get_parser("export.ssrf")
+    df = parser.parse("tests/fixtures/anonymized_subsurface_export.ssrf")
+    sid, agent = get_or_create_session()
+    agent.set_dive_data(df)
+    return sid
+
+
+# --- Unit tests for helper functions ---
+
+
+class TestClassifyZone:
+    def test_safe(self):
+        assert _classify_zone(10.0, 18.0, 30.0) == "safe"
+
+    def test_warning(self):
+        assert _classify_zone(20.0, 18.0, 30.0) == "warning"
+
+    def test_danger(self):
+        assert _classify_zone(35.0, 18.0, 30.0) == "danger"
+
+    def test_boundary_safe(self):
+        assert _classify_zone(18.0, 18.0, 30.0) == "safe"
+
+    def test_boundary_warning(self):
+        assert _classify_zone(30.0, 18.0, 30.0) == "warning"
+
+
+class TestClassifyNdlZone:
+    def test_safe(self):
+        assert _classify_ndl_zone(15.0) == "safe"
+
+    def test_warning(self):
+        assert _classify_ndl_zone(7.0) == "warning"
+
+    def test_danger(self):
+        assert _classify_ndl_zone(3.0) == "danger"
+
+
+class TestComputeDangerScore:
+    def test_safe_dive(self):
+        row = {
+            "min_ndl": 20,
+            "max_ascend_speed": 5,
+            "sac_rate": 10,
+            "max_depth": 10,
+            "adverse_conditions": 0,
+        }
+        assert _compute_danger_score(row) == 0.0
+
+    def test_all_danger(self):
+        row = {
+            "min_ndl": 2,
+            "max_ascend_speed": 15,
+            "sac_rate": 25,
+            "max_depth": 40,
+            "adverse_conditions": 1,
+        }
+        score = _compute_danger_score(row)
+        # NDL danger: 3*2=6, ascent danger: 2*2=4, SAC danger: 1*2=2, depth danger: 1*2=2, adverse: 5
+        assert score == 19.0
+
+    def test_warning_level(self):
+        row = {
+            "min_ndl": 7,
+            "max_ascend_speed": 9.5,
+            "sac_rate": 17,
+            "max_depth": 25,
+            "adverse_conditions": 0,
+        }
+        score = _compute_danger_score(row)
+        # NDL warning: 3, ascent warning: 2, SAC warning: 1, depth warning: 1
+        assert score == 7.0
+
+
+class TestIdentifyIssues:
+    def test_no_issues(self):
+        row = {
+            "max_ascend_speed": 5,
+            "min_ndl": 20,
+            "sac_rate": 10,
+            "max_depth": 10,
+            "adverse_conditions": 0,
+        }
+        assert _identify_issues(row) == []
+
+    def test_multiple_issues(self):
+        row = {
+            "max_ascend_speed": 12,
+            "min_ndl": 3,
+            "sac_rate": 22,
+            "max_depth": 35,
+            "adverse_conditions": 1,
+        }
+        issues = _identify_issues(row)
+        assert "rapid ascent" in issues
+        assert "low NDL" in issues
+        assert "high air consumption" in issues
+        assert "deep dive" in issues
+        assert "adverse conditions" in issues
+
+
+# --- Route integration tests ---
+
+
+@pytest.mark.anyio
+async def test_dashboard_session_not_found():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/dashboard/nonexistent-session")
+    assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_dashboard_no_dive_data():
+    sid, _ = get_or_create_session()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(f"/api/dashboard/{sid}")
+    assert response.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_dashboard_success(session_with_dives):
+    sid = session_with_dives
+    transport = ASGITransport(app=app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(f"/api/dashboard/{sid}")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check top-level structure
+    assert "session_id" in data
+    assert data["session_id"] == sid
+    assert "aggregate_stats" in data
+    assert "metrics" in data
+    assert "all_dives" in data
+    assert "top_problematic_dives" in data
+
+    # Aggregate stats
+    stats = data["aggregate_stats"]
+    assert stats["total_dives"] > 0
+    assert isinstance(stats["avg_max_depth"], float)
+    assert isinstance(stats["avg_sac_rate"], float)
+
+    # Metrics have per_dive values
+    assert len(data["metrics"]) > 0
+    for metric in data["metrics"]:
+        assert metric["zone"] in ("safe", "warning", "danger")
+        assert "label" in metric
+        assert "unit" in metric
+        assert "per_dive" in metric
+        assert len(metric["per_dive"]) == stats["total_dives"]
+        for pt in metric["per_dive"]:
+            assert "dive_number" in pt
+            assert "value" in pt
+            assert pt["zone"] in ("safe", "warning", "danger")
+
+    # All dives have required fields
+    for dive in data["all_dives"]:
+        assert "dive_number" in dive
+        assert "max_depth" in dive
+        assert "max_ascend_speed" in dive
+
+    # Top problematic dives are at most 3 and ordered by danger score
+    assert len(data["top_problematic_dives"]) <= 3
+    if len(data["top_problematic_dives"]) > 1:
+        scores = [d["danger_score"] for d in data["top_problematic_dives"]]
+        assert scores == sorted(scores, reverse=True)
+
+    # Problematic dives have dan_notes with search_url
+    for dive in data["top_problematic_dives"]:
+        assert "dan_notes" in dive
+        for note in dive["dan_notes"]:
+            assert "issue" in note
+            assert "relevance" in note
+            assert "search_url" in note
+            assert note["search_url"].startswith("https://dan.org/?s=")

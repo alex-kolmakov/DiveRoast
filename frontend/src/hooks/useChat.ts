@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import type { ChatMessage } from "../types";
-import { createChatStream } from "../services/api";
+import type { ChatMessage } from "@/types";
+import { createChatStream } from "@/services/api";
 
 export function useChat(sessionId: string | null) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);

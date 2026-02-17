@@ -1,0 +1,96 @@
+import { useState } from "react";
+import type { DiveMetricPoint, MetricRange } from "@/types";
+
+interface Props {
+  metric: MetricRange;
+}
+
+const ZONE_COLORS = {
+  safe: "bg-safe",
+  warning: "bg-warning",
+  danger: "bg-danger",
+};
+
+const ZONE_TEXT = {
+  safe: "text-safe",
+  warning: "text-warning",
+  danger: "text-danger",
+};
+
+export function RangeGauge({ metric }: Props) {
+  const [hoveredDive, setHoveredDive] = useState<DiveMetricPoint | null>(null);
+
+  const dives = metric.per_dive;
+  const totalDives = dives.length;
+  if (totalDives === 0) return null;
+
+  // Each dive gets an equal-width segment of the bar
+  const segmentWidth = 100 / totalDives;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{metric.label}</span>
+        <span className={`text-sm font-semibold ${ZONE_TEXT[metric.zone]}`}>
+          {metric.avg_val.toFixed(1)} {metric.unit}
+        </span>
+      </div>
+
+      {/* Gauge bar — each dive is a segment */}
+      <div className="relative h-5 w-full overflow-hidden rounded-full bg-muted/50">
+        {dives.map((dive, i) => (
+          <div
+            key={dive.dive_number}
+            className={`absolute inset-y-0 transition-opacity ${ZONE_COLORS[dive.zone]} ${
+              hoveredDive && hoveredDive.dive_number !== dive.dive_number
+                ? "opacity-40"
+                : "opacity-80 hover:opacity-100"
+            }`}
+            style={{
+              left: `${i * segmentWidth}%`,
+              width: `${segmentWidth}%`,
+              borderRight: i < totalDives - 1 ? "1px solid oklch(0.13 0.03 230 / 50%)" : "none",
+            }}
+            onMouseEnter={() => setHoveredDive(dive)}
+            onMouseLeave={() => setHoveredDive(null)}
+          />
+        ))}
+
+        {/* Threshold markers */}
+        {metric.safe_upper > 0 && (
+          <div
+            className="absolute inset-y-0 w-px bg-foreground/30"
+            style={{ left: `${_thresholdPercent(metric.safe_upper, metric)}%` }}
+          />
+        )}
+        {metric.warning_upper > 0 && metric.warning_upper !== metric.safe_upper && (
+          <div
+            className="absolute inset-y-0 w-px bg-foreground/30"
+            style={{ left: `${_thresholdPercent(metric.warning_upper, metric)}%` }}
+          />
+        )}
+      </div>
+
+      {/* Tooltip / legend */}
+      <div className="flex justify-between text-xs text-muted-foreground">
+        {hoveredDive ? (
+          <span className={ZONE_TEXT[hoveredDive.zone]}>
+            Dive #{hoveredDive.dive_number}: {hoveredDive.value.toFixed(1)} {metric.unit}
+          </span>
+        ) : (
+          <span>Min: {metric.min_val.toFixed(1)}</span>
+        )}
+        {!hoveredDive && <span>Max: {metric.max_val.toFixed(1)}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** Convert a threshold value to a percentage position based on where it falls among sorted dives */
+function _thresholdPercent(threshold: number, metric: MetricRange): number {
+  const dives = metric.per_dive;
+  if (dives.length === 0) return 0;
+  // Find how many dives are below the threshold
+  const below = dives.filter((d) => d.value <= threshold).length;
+  return (below / dives.length) * 100;
+}

@@ -27,8 +27,35 @@ class DiverRoastAgent:
         return self._client
 
     def set_dive_data(self, df: pd.DataFrame):
-        """Store parsed dive log data for tool calls."""
+        """Store parsed dive log data for tool calls.
+
+        Also seeds the conversation history so the LLM knows data is available.
+        """
         self.dive_data = df
+        dive_numbers = sorted(df["dive_number"].unique().tolist())
+        context_msg = (
+            f"[System: The diver has uploaded a dive log containing {len(dive_numbers)} dives "
+            f"(dive numbers: {', '.join(str(d) for d in dive_numbers)}). "
+            f"The dive data is now loaded and available through your tools. "
+            f"Use list_dives, analyze_all_dives, analyze_dive_profile, and get_dive_summary "
+            f"to access this data. Do NOT ask the user to upload — it's already done.]"
+        )
+        self.history.append(
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=context_msg)],
+            )
+        )
+        self.history.append(
+            types.Content(
+                role="model",
+                parts=[
+                    types.Part.from_text(
+                        text=f"Got it — {len(dive_numbers)} dives loaded. I'm ready to analyze and roast."
+                    )
+                ],
+            )
+        )
 
     def get_dive_numbers(self) -> list[str]:
         """Return list of available dive numbers."""

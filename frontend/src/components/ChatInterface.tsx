@@ -1,13 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { useChat } from "../hooks/useChat";
-import { MessageBubble } from "./MessageBubble";
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
+import { MessageBubble } from "@/components/MessageBubble";
+import type { ChatMessage } from "@/types";
 
 interface Props {
   sessionId: string | null;
+  messages: ChatMessage[];
+  isLoading: boolean;
+  onSendMessage: (content: string) => void;
 }
 
-export function ChatInterface({ sessionId }: Props) {
-  const { messages, isLoading, sendMessage } = useChat(sessionId);
+export function ChatInterface({
+  sessionId,
+  messages,
+  isLoading,
+  onSendMessage,
+}: Props) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -18,40 +27,18 @@ export function ChatInterface({ sessionId }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    sendMessage(input.trim());
+    onSendMessage(input.trim());
     setInput("");
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        backgroundColor: "#0f172a",
-      }}
-    >
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px",
-        }}
-      >
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-y-auto p-4">
         {messages.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              color: "#64748b",
-              marginTop: "40%",
-            }}
-          >
-            <p style={{ fontSize: "24px" }}>
-              Upload a dive log and start chatting
-            </p>
-            <p style={{ fontSize: "14px" }}>
-              DiveRoast will analyze your dives and roast your questionable
-              decisions
+          <div className="mt-[30%] text-center text-muted-foreground">
+            <p className="text-lg">Ask about your dives</p>
+            <p className="mt-1 text-sm">
+              DiveRoast will analyze your dives and roast your questionable decisions
             </p>
           </div>
         )}
@@ -61,54 +48,28 @@ export function ChatInterface({ sessionId }: Props) {
         <div ref={messagesEndRef} />
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: "flex",
-          padding: "16px",
-          gap: "8px",
-          borderTop: "1px solid #1e293b",
-        }}
-      >
+      <form onSubmit={handleSubmit} className="flex gap-2 border-t border-border p-4">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={
-            sessionId
-              ? "Ask about your dives..."
-              : "Upload a dive log first..."
+            sessionId ? "Ask about your dives..." : "Upload a dive log first..."
           }
           disabled={!sessionId}
-          style={{
-            flex: 1,
-            padding: "12px 16px",
-            borderRadius: "8px",
-            border: "1px solid #334155",
-            backgroundColor: "#1e293b",
-            color: "#f8fafc",
-            fontSize: "14px",
-            outline: "none",
-          }}
+          className="flex-1 rounded-lg border border-input bg-secondary px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
         />
-        <button
+        <Button
           type="submit"
           disabled={!sessionId || isLoading || !input.trim()}
-          style={{
-            padding: "12px 24px",
-            borderRadius: "8px",
-            border: "none",
-            backgroundColor:
-              sessionId && !isLoading ? "#2563eb" : "#334155",
-            color: "#f8fafc",
-            cursor:
-              sessionId && !isLoading ? "pointer" : "not-allowed",
-            fontSize: "14px",
-            fontWeight: "bold",
-          }}
+          size="sm"
         >
-          {isLoading ? "..." : "Send"}
-        </button>
+          {isLoading ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
       </form>
     </div>
   );

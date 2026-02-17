@@ -52,7 +52,7 @@ def chunk_text(text, chunk_size=None, chunk_overlap=None):
     return text_splitter.split_text(text)
 
 
-def _make_resource(name: str, path: str) -> dict:
+def _make_resource(name: str, path: str) -> Any:
     """Build a resource config for a DAN WordPress API endpoint."""
     return {
         "name": name,
