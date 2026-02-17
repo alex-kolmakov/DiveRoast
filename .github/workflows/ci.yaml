@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Type check
-        run: npx tsc -b
+        run: npx tsc -p tsconfig.app.json --noEmit
 
   test:
     runs-on: ubuntu-latest
