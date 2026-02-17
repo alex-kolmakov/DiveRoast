@@ -31,6 +31,7 @@ dependencies = [
     "mcp[cli]>=1.0",
     # Observability
     "arize-phoenix-otel>=0.6",
+    "arize-phoenix-client>=1.0",
     "openinference-instrumentation-google-genai>=0.1",
     # Embeddings
     "sentence-transformers>=3.1",

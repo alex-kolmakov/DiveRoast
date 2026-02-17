@@ -11,7 +11,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006/v1/traces
+      - PHOENIX_CLIENT_ENDPOINT=http://phoenix:6006
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+    depends_on:
+      phoenix:
+        condition: service_healthy
     volumes:
       - ./.lancedb:/app/.lancedb
       - ./.dlt:/app/.dlt
@@ -34,4 +38,10 @@ services:
     ports:
       - "6006:6006"
       - "4317:4317"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6006/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: on-failure:5

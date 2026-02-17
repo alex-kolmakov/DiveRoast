@@ -1,6 +1,9 @@
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 
 from src.config import settings
+
+logger = logging.getLogger(__name__)
 
 PROMPT_V1 = """You are DiveRoast, a brutally honest diving roast master. You've seen every dive profile mistake in the book and you have ZERO patience for unsafe diving.
 
@@ -78,12 +81,17 @@ Behavioral constraints:
 Remember: Your goal is to help divers improve their safety awareness through honest, specific feedback with a touch of humor."""
 
 
+PHOENIX_PROMPT_NAME = "diveroast-system"
+PHOENIX_PROMPT_TAG = "production"
+
+
 @dataclass
 class PromptVersion:
     version: int
     label: str
     changelog: str
     prompt: str
+    phoenix_version_id: str | None = field(default=None)
 
 
 PROMPT_VERSIONS: dict[int, PromptVersion] = {
@@ -98,8 +106,57 @@ PROMPT_VERSIONS: dict[int, PromptVersion] = {
 }
 
 
-def get_active_prompt() -> PromptVersion:
-    """Return the active prompt version based on settings."""
+def get_prompt_from_phoenix() -> PromptVersion | None:
+    """Fetch the production-tagged prompt from Phoenix.
+
+    Returns None if Phoenix is unavailable or the prompt doesn't exist.
+    """
+    try:
+        from phoenix.client import Client
+
+        client = Client(base_url=settings.PHOENIX_CLIENT_ENDPOINT)
+        prompt = client.prompts.get(
+            prompt_identifier=PHOENIX_PROMPT_NAME,
+            tag=PHOENIX_PROMPT_TAG,
+        )
+        # Extract system message text via the public format() API
+        formatted = prompt.format()
+        messages = formatted.messages
+        system_text = ""
+        for msg in messages:
+            if msg.get("role") == "system":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    system_text = content
+                elif isinstance(content, list):
+                    # Handle structured content blocks
+                    system_text = "".join(
+                        block.get("text", "")
+                        for block in content
+                        if isinstance(block, dict)
+                    )
+                break
+
+        if not system_text:
+            logger.warning(
+                "Phoenix prompt has no system message, falling back to local"
+            )
+            return None
+
+        return PromptVersion(
+            version=0,
+            label=f"phoenix-{PHOENIX_PROMPT_TAG}",
+            changelog="Fetched from Phoenix",
+            prompt=system_text,
+            phoenix_version_id=str(prompt.id),
+        )
+    except Exception as e:
+        logger.warning("Failed to fetch prompt from Phoenix: %s", e)
+        return None
+
+
+def _get_local_prompt() -> PromptVersion:
+    """Return the local prompt version based on settings."""
     version = settings.PROMPT_VERSION
     if version not in PROMPT_VERSIONS:
         raise ValueError(
@@ -109,5 +166,13 @@ def get_active_prompt() -> PromptVersion:
     return PROMPT_VERSIONS[version]
 
 
+def get_active_prompt() -> PromptVersion:
+    """Return the active prompt, trying Phoenix first with local fallback."""
+    phoenix_prompt = get_prompt_from_phoenix()
+    if phoenix_prompt is not None:
+        return phoenix_prompt
+    return _get_local_prompt()
+
+
 # Backward-compatible alias
-ROAST_SYSTEM_PROMPT = get_active_prompt().prompt
+ROAST_SYSTEM_PROMPT = _get_local_prompt().prompt

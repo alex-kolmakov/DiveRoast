@@ -2,8 +2,14 @@ import numpy as np
 import pandas as pd
 
 
-def calculate_ascend_speed(data):
-    """Calculate max ascend speed and count of high-speed ascent instances per dive."""
+def calculate_ascend_speed(data, shallow_threshold=2.0):
+    """Calculate max ascend speed and count of high-speed ascent instances per dive.
+
+    Samples shallower than ``shallow_threshold`` metres are excluded from
+    speed calculations because near-surface depth sensor readings are noisy
+    and produce unrealistically high ascent rates (e.g. 80 m/min from a 1 m
+    depth change in 1 second on surfacing).
+    """
     data["time_diff"] = data.groupby("dive_number")["time"].diff().fillna(0)
     data["depth_diff"] = data.groupby("dive_number")["depth"].diff().fillna(0)
     data["ascend_speed"] = (
@@ -15,6 +21,14 @@ def calculate_ascend_speed(data):
     data["ascend_speed"] = (
         data["ascend_speed"].replace([np.inf, -np.inf], np.nan).fillna(0)
     )  # Handle infinite and NaN values
+
+    # Zero out ascent speed for near-surface samples where sensor noise
+    # causes unrealistically high readings.
+    prev_depth = data["depth"] - data["depth_diff"]
+    shallow_mask = (data["depth"] < shallow_threshold) | (
+        prev_depth < shallow_threshold
+    )
+    data.loc[shallow_mask, "ascend_speed"] = 0
 
     # Calculate the maximum ascend speed per dive
     max_ascend_speed = data.groupby("dive_number")["ascend_speed"].max().reset_index()

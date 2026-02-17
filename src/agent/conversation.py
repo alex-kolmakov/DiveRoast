@@ -143,14 +143,17 @@ class DiverRoastAgent:
         """
         tracer = get_tracer()
         prompt_ver = get_active_prompt()
+        span_attrs = {
+            "openinference.span.kind": "CHAIN",
+            "prompt.version": prompt_ver.version,
+            "prompt.label": prompt_ver.label,
+        }
+        if prompt_ver.phoenix_version_id:
+            span_attrs["prompt.phoenix_version_id"] = prompt_ver.phoenix_version_id
         with (
             tracer.start_as_current_span(
                 "agent.chat",
-                attributes={
-                    "openinference.span.kind": "CHAIN",
-                    "prompt.version": prompt_ver.version,
-                    "prompt.label": prompt_ver.label,
-                },
+                attributes=span_attrs,
             ),
             using_attributes(session_id=str(id(self))),
         ):
@@ -217,14 +220,19 @@ class DiverRoastAgent:
         """
         tracer = get_tracer()
         prompt_ver = get_active_prompt()
+        stream_span_attrs = {
+            "openinference.span.kind": "CHAIN",
+            "prompt.version": prompt_ver.version,
+            "prompt.label": prompt_ver.label,
+        }
+        if prompt_ver.phoenix_version_id:
+            stream_span_attrs["prompt.phoenix_version_id"] = (
+                prompt_ver.phoenix_version_id
+            )
         with (
             tracer.start_as_current_span(
                 "agent.chat_stream",
-                attributes={
-                    "openinference.span.kind": "CHAIN",
-                    "prompt.version": prompt_ver.version,
-                    "prompt.label": prompt_ver.label,
-                },
+                attributes=stream_span_attrs,
             ),
             using_attributes(session_id=str(id(self))),
         ):

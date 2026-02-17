@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     # Phoenix
     PHOENIX_COLLECTOR_ENDPOINT: str = "http://localhost:6006/v1/traces"
+    PHOENIX_CLIENT_ENDPOINT: str = "http://localhost:6006"
     PHOENIX_PROJECT_NAME: str = "diveroast"
 
     # DAN scraping
