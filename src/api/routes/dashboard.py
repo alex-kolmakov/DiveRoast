@@ -454,8 +454,8 @@ async def get_dashboard(session_id: str):
         if len(picks) >= 3:
             break
         rank_col, higher_is_worse = ISSUE_RANK_KEY[pick_issue]
-        best = None
-        best_metric_val = None
+        best: tuple[str, float, dict, list[str], str] | None = None
+        best_metric_val: float = 0.0
         for dive_num, score, row_dict, issues in scored_dives:
             if dive_num in used_dive_nums:
                 continue

@@ -14,13 +14,15 @@ jobs:
       - uses: astral-sh/setup-uv@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: Install dependencies
         run: uv pip install --system -e ".[dev]"
       - name: Ruff check
         run: ruff check .
       - name: Ruff format check
         run: ruff format --check .
+      - name: Pyrefly type check
+        run: pyrefly check
 
   lint-frontend:
     runs-on: ubuntu-latest
@@ -46,7 +48,7 @@ jobs:
       - uses: astral-sh/setup-uv@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: Install dependencies
         run: uv pip install --system -e ".[dev]"
       - name: Run tests

@@ -5,7 +5,7 @@ from google.genai import types
 from openinference.instrumentation import using_attributes
 
 from src.agent.gemini_client import get_client
-from src.agent.system_prompts import ROAST_SYSTEM_PROMPT
+from src.agent.system_prompts import get_active_prompt
 from src.agent.tools import TOOL_DECLARATIONS, TOOL_FUNCTIONS
 from src.config import settings
 from src.observability import get_tracer
@@ -142,10 +142,15 @@ class DiverRoastAgent:
         Handles the Gemini function-calling loop: call -> tool -> call -> final text.
         """
         tracer = get_tracer()
+        prompt_ver = get_active_prompt()
         with (
             tracer.start_as_current_span(
                 "agent.chat",
-                attributes={"openinference.span.kind": "CHAIN"},
+                attributes={
+                    "openinference.span.kind": "CHAIN",
+                    "prompt.version": prompt_ver.version,
+                    "prompt.label": prompt_ver.label,
+                },
             ),
             using_attributes(session_id=str(id(self))),
         ):
@@ -163,7 +168,7 @@ class DiverRoastAgent:
                     model=settings.GEMINI_MODEL,
                     contents=self.history,
                     config=types.GenerateContentConfig(
-                        system_instruction=ROAST_SYSTEM_PROMPT,
+                        system_instruction=prompt_ver.prompt,
                         tools=tools,
                         temperature=0.8,
                     ),
@@ -211,10 +216,15 @@ class DiverRoastAgent:
         the final text response.
         """
         tracer = get_tracer()
+        prompt_ver = get_active_prompt()
         with (
             tracer.start_as_current_span(
                 "agent.chat_stream",
-                attributes={"openinference.span.kind": "CHAIN"},
+                attributes={
+                    "openinference.span.kind": "CHAIN",
+                    "prompt.version": prompt_ver.version,
+                    "prompt.label": prompt_ver.label,
+                },
             ),
             using_attributes(session_id=str(id(self))),
         ):
@@ -232,7 +242,7 @@ class DiverRoastAgent:
                     model=settings.GEMINI_MODEL,
                     contents=self.history,
                     config=types.GenerateContentConfig(
-                        system_instruction=ROAST_SYSTEM_PROMPT,
+                        system_instruction=prompt_ver.prompt,
                         tools=tools,
                         temperature=0.8,
                     ),

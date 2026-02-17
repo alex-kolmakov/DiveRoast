@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 2000
     CHUNK_OVERLAP: int = 100
 
+    # Prompt
+    PROMPT_VERSION: int = 3
+
     # Phoenix
     PHOENIX_COLLECTOR_ENDPOINT: str = "http://localhost:6006/v1/traces"
     PHOENIX_PROJECT_NAME: str = "diveroast"

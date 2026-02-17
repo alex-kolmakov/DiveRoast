@@ -19,11 +19,11 @@
 
 ## What is this?
 
-DiveRoast analyzes your SCUBA dive logs, identifies safety issues, and delivers witty critiques grounded in real incident reports from [Divers Alert Network (DAN)](https://www.diversalertnetwork.org/). Upload a dive log, get roasted, learn something.
+DiveRoast analyzes your SCUBA dive logs, identifies safety issues, and delivers personalized safety critiques grounded in real incident reports from [Divers Alert Network (DAN)](https://www.diversalertnetwork.org/). Upload a dive log, get a full safety analysis, learn something.
 
-- **Agentic roasting** — Gemini with function-calling tools reviews your dives and delivers personalized safety commentary
+- **Agentic analysis** — Gemini with function-calling tools reviews your dives and delivers personalized safety commentary with dry humor
 - **RAG over DAN content** — hybrid search (semantic + full-text) over DAN incident reports and guidelines via LanceDB
-- **Per-dive dashboard** — gauges for ascent rate, SAC rate, NDL, depth, and more
+- **Interactive dashboard** — per-dive gauges for ascent rate, SAC rate, NDL, depth; top 3 worst dives with LLM-generated explanations; diver profile with water types, regions, experience level; mini maps for dive sites
 - **MCP server** — all diving tools exposed via the Model Context Protocol for use in Claude Desktop, Cursor, or any MCP client
 - **Observability** — full LLM/tool/RAG tracing with Arize Phoenix
 
@@ -88,7 +88,8 @@ Available tools: `search_dan_incidents`, `search_dan_guidelines`, `parse_dive_lo
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
 | `GEMINI_API_KEY` | — | **Required.** Google Gemini API key |
-| `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini model to use |
+| `GEMINI_MODEL` | `gemini-3.0-flash` | Gemini model to use |
+| `PROMPT_VERSION` | `3` | Active prompt version (1=roast-master, 2=polite-analyst, 3=dry-humor-analyst) |
 | `LANCEDB_URI` | `.lancedb` | Path to LanceDB storage |
 | `DESTINATION__LANCEDB__EMBEDDING_MODEL_PROVIDER` | `sentence-transformers` | Embedding provider |
 | `DESTINATION__LANCEDB__EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Embedding model |

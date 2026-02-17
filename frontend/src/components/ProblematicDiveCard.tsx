@@ -17,7 +17,7 @@ export function ProblematicDiveCard({ dive, rank }: Props) {
     ? `https://www.google.com/maps?q=${dive.features.latitude},${dive.features.longitude}`
     : null;
   const osmEmbedUrl = hasCoords
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${Number(dive.features.longitude) - 1.5},${Number(dive.features.latitude) - 1},${Number(dive.features.longitude) + 1.5},${Number(dive.features.latitude) + 1}&layer=mapnik&marker=${dive.features.latitude},${dive.features.longitude}`
+    ? `https://www.openstreetmap.org/export/embed.html?bbox=${Number(dive.features.longitude) - 0.35},${Number(dive.features.latitude) - 0.25},${Number(dive.features.longitude) + 0.35},${Number(dive.features.latitude) + 0.25}&layer=mapnik&marker=${dive.features.latitude},${dive.features.longitude}`
     : null;
 
   const visibleIssues = dive.issues.filter((i) => i !== "adverse conditions");
@@ -54,7 +54,7 @@ export function ProblematicDiveCard({ dive, rank }: Props) {
           >
             <iframe
               src={osmEmbedUrl}
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[250px] w-[500px] origin-center -translate-x-1/2 -translate-y-[55%] scale-[0.75]"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[400px] w-[600px] origin-center -translate-x-1/2 -translate-y-[55%] scale-[0.5]"
               title={`Map of ${siteName || "dive site"}`}
               loading="lazy"
             />
