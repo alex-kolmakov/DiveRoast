@@ -2,7 +2,7 @@
 
 **A conversational agent that roasts your SCUBA diving — backed by real safety data.**
 
-[![CI](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/ci.yaml/badge.svg)](https://github.com/alex-kolmakov/divelog-autoreport/actions/workflows/ci.yaml)
+[![CI](https://github.com/alex-kolmakov/diveroast/actions/workflows/ci.yaml/badge.svg)](https://github.com/alex-kolmakov/diveroast/actions/workflows/ci.yaml)
 ![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-blue?logo=docker&logoColor=white)
@@ -33,8 +33,8 @@ DiveRoast analyzes your SCUBA dive logs, identifies safety issues, and delivers 
 ## Quick Start (Docker)
 
 ```bash
-git clone https://github.com/alex-kolmakov/divelog-autoreport.git
-cd divelog-autoreport
+git clone https://github.com/alex-kolmakov/diveroast.git
+cd diveroast
 cp .env.sample .env   # add your GEMINI_API_KEY
 docker compose up --build
 ```
@@ -76,7 +76,7 @@ DiveRoast exposes its diving tools as an MCP server (stdio transport). Add to yo
     "diveroast": {
       "command": "python",
       "args": ["-m", "src.mcp.server"],
-      "cwd": "/path/to/divelog-autoreport"
+      "cwd": "/path/to/diveroast"
     }
   }
 }
