@@ -3,21 +3,16 @@
 **A conversational agent that roasts your SCUBA diving — backed by real safety data.**
 
 [![CI](https://github.com/alex-kolmakov/diveroast/actions/workflows/ci.yaml/badge.svg)](https://github.com/alex-kolmakov/diveroast/actions/workflows/ci.yaml)
-![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-blue?logo=docker&logoColor=white)
-![dlt](https://img.shields.io/badge/dlt-data%20pipeline-teal)
-
-![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
-![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
-![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
 ![Terraform](https://img.shields.io/badge/Terraform-GCP-844FBA?logo=terraform&logoColor=white)
 ![Cloud Run](https://img.shields.io/badge/Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)
-
-
-![Node](https://img.shields.io/badge/node-20-green?logo=node.js&logoColor=white)
+![dlt](https://img.shields.io/badge/dlt-data%20pipeline-teal)
+![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
+![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
+![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)
+
+![Screen Recording 2026-02-17 at 5 14 59 PM](https://github.com/user-attachments/assets/c81ba2e6-4cf5-4e92-8f8e-9ef496a26aa6)
 
 ## What is this?
 
@@ -28,9 +23,6 @@ DiveRoast analyzes your SCUBA dive logs, identifies safety issues, and delivers 
 - **Interactive dashboard** — per-dive gauges for ascent rate, SAC rate, NDL, depth; top 3 worst dives with LLM-generated explanations; diver profile with water types, regions, experience level; mini maps for dive sites
 - **MCP server** — all diving tools exposed via the Model Context Protocol for use in Claude Desktop, Cursor, or any MCP client
 - **Observability** — full LLM/tool/RAG tracing with Arize Phoenix
-
-![Screen Recording 2026-02-17 at 5 14 59 PM](https://github.com/user-attachments/assets/c81ba2e6-4cf5-4e92-8f8e-9ef496a26aa6)
-
 
 ## Quick Start (Docker)
 
