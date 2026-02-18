@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     PHOENIX_CLIENT_ENDPOINT: str = "http://localhost:6006"
     PHOENIX_PROJECT_NAME: str = "diveroast"
 
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
+
     # DAN scraping
     DAN_BASE_URL: str = "https://dan.org/wp-json/wp/v2/"
     DAN_PER_PAGE: int = 100

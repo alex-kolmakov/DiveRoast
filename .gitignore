@@ -146,3 +146,12 @@ CLAUDE.md
 
 # Local articles / decision logs
 articles/
+
+# GCP service account key
+service.json
+
+# Terraform
+*.tfvars
+!terraform.tfvars.example
+infra/.terraform/
+infra/*.tfstate*

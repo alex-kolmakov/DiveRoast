@@ -31,4 +31,4 @@ async def chat(request: ChatRequest):
                 "data": json.dumps({"error": str(e)}),
             }
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(event_generator(), ping=15)

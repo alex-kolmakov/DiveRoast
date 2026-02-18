@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, MapPin } from "lucide-react";
+import { AlertTriangle, MapPin, Globe } from "lucide-react";
 import type { ProblematicDive } from "@/types";
 
 interface Props {
@@ -44,8 +44,8 @@ export function ProblematicDiveCard({ dive, rank }: Props) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Mini map — scaled up to hide controls, clipped by overflow */}
-        {osmEmbedUrl && mapsUrl && (
+        {/* Mini map or placeholder */}
+        {osmEmbedUrl && mapsUrl ? (
           <a
             href={mapsUrl}
             target="_blank"
@@ -59,7 +59,17 @@ export function ProblematicDiveCard({ dive, rank }: Props) {
               loading="lazy"
             />
           </a>
-        )}
+        ) : hasSite ? (
+          <a
+            href={`https://www.google.com/maps/search/${encodeURIComponent(siteName || "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-[90px] items-center justify-center gap-2 rounded-md border border-border bg-muted/30 text-xs text-muted-foreground hover:bg-muted/50 transition-colors"
+          >
+            <Globe className="h-4 w-4" />
+            <span>Search "{siteName}" on Maps</span>
+          </a>
+        ) : null}
 
         {/* Key stats */}
         <div className="grid grid-cols-2 gap-2 text-sm">

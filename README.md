@@ -11,6 +11,8 @@
 ![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
 ![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
 ![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
+![Terraform](https://img.shields.io/badge/Terraform-GCP-844FBA?logo=terraform&logoColor=white)
+![Cloud Run](https://img.shields.io/badge/Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)
 
 
 ![Node](https://img.shields.io/badge/node-20-green?logo=node.js&logoColor=white)
@@ -84,12 +86,52 @@ DiveRoast exposes its diving tools as an MCP server (stdio transport). Add to yo
 
 Available tools: `search_dan_incidents`, `search_dan_guidelines`, `parse_dive_log`, `analyze_dive_profile`, `get_dive_summary`, `list_dives`, `refresh_dan_data`.
 
+## Cloud Deployment (GCP)
+
+DiveRoast deploys to **Google Cloud Run** with Terraform. Three services (backend, frontend, Phoenix tracing), managed through three `make` commands:
+
+```bash
+# Prerequisites: gcloud CLI, terraform, docker
+# One-time GCP setup:
+gcloud auth login
+gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com
+
+# Configure
+cp infra/terraform.tfvars.example infra/terraform.tfvars
+# Edit terraform.tfvars with your GCP project ID and region
+# Ensure GEMINI_API_KEY is set in .env
+
+# Deploy
+make prepare    # bootstrap infra (APIs, registry, secrets), build & push images
+make deploy     # apply Terraform, deploy all Cloud Run services
+
+# Tear down — verifies nothing billable remains
+make destroy
+```
+
+`make prepare` creates the Artifact Registry and secrets via a targeted Terraform apply, then builds and pushes both Docker images. `make deploy` applies the full Terraform config, then rebuilds the frontend with the real backend URL (Vite bakes `VITE_API_URL` at build time). `make destroy` empties GCS buckets, runs `terraform destroy`, and verifies that all Cloud Run services, buckets, secrets, and repos are actually gone.
+
+The Gemini API key flows from `.env` → `TF_VAR_gemini_api_key` → Secret Manager. It never appears in Terraform state or source control.
+
+**Architecture:**
+
+| Resource | Service | Notes |
+| -------- | ------- | ----- |
+| Cloud Run | `diveroast-backend` | FastAPI + agent + RAG, scale 0-3, 4Gi RAM |
+| Cloud Run | `diveroast-frontend` | Nginx serving Vite build, scale 0-2 |
+| Cloud Run | `diveroast-phoenix` | Arize Phoenix tracing UI, always-on |
+| GCS | Phoenix traces bucket | FUSE-mounted for trace persistence |
+| Artifact Registry | `diveroast` | Docker images for backend + frontend |
+| Secret Manager | `gemini-api-key` | Injected into backend via `secret_key_ref` |
+
+Terraform files live in `infra/`, one per concern. See [Article 06](articles/06-from-localhost-to-cloud-run.md) for the full deployment story.
+
 ## Environment Variables
 
 | Variable | Default | Description |
 | -------- | ------- | ----------- |
 | `GEMINI_API_KEY` | — | **Required.** Google Gemini API key |
-| `GEMINI_MODEL` | `gemini-3.0-flash` | Gemini model to use |
+| `GEMINI_MODEL` | `gemini-3-flash-preview` | Gemini model to use |
 | `PROMPT_VERSION` | `3` | Active prompt version (1=roast-master, 2=polite-analyst, 3=dry-humor-analyst) |
 | `LANCEDB_URI` | `.lancedb` | Path to LanceDB storage |
 | `DESTINATION__LANCEDB__EMBEDDING_MODEL_PROVIDER` | `sentence-transformers` | Embedding provider |
