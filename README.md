@@ -10,7 +10,6 @@
 ![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
 ![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)
 
 ![Screen Recording 2026-02-17 at 5 14 59 PM](https://github.com/user-attachments/assets/c81ba2e6-4cf5-4e92-8f8e-9ef496a26aa6)
 
