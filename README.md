@@ -6,9 +6,9 @@
 ![Terraform](https://img.shields.io/badge/Terraform-GCP-844FBA?logo=terraform&logoColor=white)
 ![Cloud Run](https://img.shields.io/badge/Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)
 ![dlt](https://img.shields.io/badge/dlt-data%20pipeline-teal)
-![LanceDB](https://img.shields.io/badge/LanceDB-vector%20store-white)
+![LanceDB](https://img.shields.io/badge/LanceDB-vectors-white)
 ![MCP](https://img.shields.io/badge/MCP-tool%20server-purple)
-![Arize Phoenix](https://img.shields.io/badge/Arize%20Phoenix-observability-orange)
+![Arize Phoenix](https://img.shields.io/badge/Arize-Phoenix-orange)
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
 
 ![Screen Recording 2026-02-17 at 5 14 59 PM](https://github.com/user-attachments/assets/c81ba2e6-4cf5-4e92-8f8e-9ef496a26aa6)
