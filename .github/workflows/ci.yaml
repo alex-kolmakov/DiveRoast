@@ -42,5 +42,5 @@ jobs:
     needs: [lint-backend, test]
     steps:
       - uses: actions/checkout@v4
-      - name: Build Docker images
-        run: docker compose build
+      - name: Build backend Docker image
+        run: docker compose build backend
